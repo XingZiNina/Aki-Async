@@ -11,16 +11,27 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Mixin(value = ServerLevel.class)
 public abstract class ServerLevelTickBlockMixin {
 
     @Unique
     private static final boolean ENABLED = true;
+
+    @Unique
+    private static final AtomicInteger pendingTasks = new AtomicInteger(0);
+
+    @Unique
+    private static final int MAX_PENDING_TASKS = 50;
+
+    @Unique
+    private static long totalTasksSubmitted = 0;
+    @Unique
+    private static long totalTasksRejected = 0;
 
     @Unique
     private static volatile ExecutorService executorService;
@@ -32,22 +43,22 @@ public abstract class ServerLevelTickBlockMixin {
             executorService = new ThreadPoolExecutor(
                     poolSize,
                     poolSize,
-                    60L, TimeUnit.SECONDS,
-                    new LinkedBlockingQueue<>(1000),
+                    30L, TimeUnit.SECONDS,
+                    new LinkedBlockingQueue<>(200),
                     r -> {
                         Thread t = new Thread(r, "AkiAsync-Pool");
                         t.setDaemon(true);
                         return t;
                     },
-                    new ThreadPoolExecutor.CallerRunsPolicy()
+                    new ThreadPoolExecutor.DiscardPolicy()
             );
-            System.out.println("[AkiAsync] 线程池已初始化，大小: " + poolSize);
+            System.out.println("[AkiAsync] 线程池已初始化，大小: " + poolSize + ", 队列: 200, 最大待处理任务: " + MAX_PENDING_TASKS);
         }
         return executorService;
     }
 
     @Inject(method = "tickBlock", at = @At("HEAD"), cancellable = true)
-    private void aki$optimizedAsyncTickBlock(BlockPos pos, Block block, CallbackInfo ci) {
+    private void aki$controlledAsyncTickBlock(BlockPos pos, Block block, CallbackInfo ci) {
         if (!ENABLED) return;
 
         ServerLevel level = (ServerLevel) (Object) this;
@@ -63,6 +74,18 @@ public abstract class ServerLevelTickBlockMixin {
             return;
         }
 
+        int currentPending = pendingTasks.get();
+        if (currentPending >= MAX_PENDING_TASKS) {
+            totalTasksRejected++;
+            if (totalTasksRejected % 100 == 0) {
+                System.out.println("[AkiAsync] 流量控制：已拒绝 " + totalTasksRejected + " 个任务，当前待处理: " + currentPending);
+            }
+            return;
+        }
+
+        pendingTasks.incrementAndGet();
+        totalTasksSubmitted++;
+
         final ServerLevel taskLevel = level;
         final BlockPos taskPos = pos;
         final BlockState taskState = blockState;
@@ -73,12 +96,15 @@ public abstract class ServerLevelTickBlockMixin {
                     taskState.tick(taskLevel, taskPos, taskLevel.random);
                 } catch (Throwable t) {
                     handleAsyncError(taskLevel, taskPos, block, t);
+                } finally {
+                    pendingTasks.decrementAndGet();
                 }
             });
 
             ci.cancel();
         } catch (Exception e) {
-            System.out.println("[AkiAsync] 线程池异常，回退到同步执行: " + e.getMessage());
+            pendingTasks.decrementAndGet();
+            System.out.println("[AkiAsync] 任务提交失败，回退到同步执行: " + e.getMessage());
         }
     }
 
@@ -88,6 +114,7 @@ public abstract class ServerLevelTickBlockMixin {
                 blockName.contains("water") ||
                         blockName.contains("lava") ||
                         blockName.contains("bubble") ||
+                        blockName.contains("flowing") ||
                         blockName.contains("redstone") ||
                         blockName.contains("comparator") ||
                         blockName.contains("repeater") ||
@@ -104,6 +131,10 @@ public abstract class ServerLevelTickBlockMixin {
                         blockName.contains("daylight_detector") ||
                         blockName.contains("tnt") ||
                         blockName.contains("note_block") ||
+                        blockName.contains("fire") ||
+                        blockName.contains("torch") ||
+                        blockName.contains("lantern") ||
+                        blockName.contains("campfire") ||
                         blockName.contains("leaves") ||
                         blockName.contains("sapling") ||
                         blockName.contains("grass") ||
@@ -123,19 +154,41 @@ public abstract class ServerLevelTickBlockMixin {
                         blockName.contains("coral") ||
                         blockName.contains("azalea") ||
                         blockName.contains("mangrove") ||
-                        blockName.contains("magma") ||
-                        blockName.contains("soul") ||
-                        blockName.contains("crying_obsidian") ||
                         blockName.contains("cherry") ||
                         blockName.contains("spore_blossom") ||
                         blockName.contains("moss") ||
                         blockName.contains("chorus") ||
+                        blockName.contains("command") ||
+                        blockName.contains("structure") ||
+                        blockName.contains("spawner") ||
+                        blockName.contains("bed") ||
+                        blockName.contains("door") ||
+                        blockName.contains("trapdoor") ||
+                        blockName.contains("fence_gate") ||
+                        blockName.contains("chest") ||
+                        blockName.contains("barrel") ||
+                        blockName.contains("furnace") ||
+                        blockName.contains("enchanting_table") ||
+                        blockName.contains("anvil") ||
+                        blockName.contains("beacon") ||
+                        blockName.contains("conduit") ||
+                        blockName.contains("bell") ||
                         blockName.contains("portal") ||
                         blockName.contains("end_gateway") ||
                         blockName.contains("dragon_egg") ||
                         blockName.contains("sponge") ||
                         blockName.contains("cake") ||
                         blockName.contains("scaffolding") ||
+                        blockName.contains("sculk") ||
+                        blockName.contains("magma") ||
+                        blockName.contains("soul") ||
+                        blockName.contains("crying_obsidian") ||
+                        blockName.contains("copper") ||
+                        blockName.contains("farmland") ||
+                        blockName.contains("composter") ||
+                        blockName.contains("bee_nest") ||
+                        blockName.contains("candle") ||
+                        blockName.contains("rail") ||
                         blockName.contains("pointed_dripstone") ||
                         blockName.contains("lightning_rod") ||
                         blockName.contains("powder_snow") ||
@@ -147,7 +200,7 @@ public abstract class ServerLevelTickBlockMixin {
                         blockName.contains("suspicious_sand") ||
                         blockName.contains("suspicious_gravel") ||
                         blockName.contains("trial_spawner") ||
-                        blockName.contains("vault") ;
+                        blockName.contains("vault");
     }
 
     @Unique
@@ -158,7 +211,9 @@ public abstract class ServerLevelTickBlockMixin {
                     BlockState current = level.getBlockState(pos);
                     if (current.is(block)) {
                         current.tick(level, pos, level.random);
-                        System.out.println("[AkiAsync] 异步失败，已回退到同步执行: " + block);
+                        if (Math.random() < 0.01) {
+                            System.out.println("[AkiAsync] 异步失败，已回退到同步执行: " + block);
+                        }
                     }
                 } catch (Throwable ignored) {}
             });
