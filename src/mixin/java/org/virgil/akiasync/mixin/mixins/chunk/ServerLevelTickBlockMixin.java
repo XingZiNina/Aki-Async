@@ -1,5 +1,7 @@
 package org.virgil.akiasync.mixin.mixins.chunk;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,10 +25,16 @@ public abstract class ServerLevelTickBlockMixin {
     private static final boolean ENABLED = true;
 
     @Unique
+    private static final Logger LOGGER = LoggerFactory.getLogger("AkiAsync");
+
+    @Unique
     private static final AtomicInteger pendingTasks = new AtomicInteger(0);
 
     @Unique
     private static final int MAX_PENDING_TASKS = 50;
+
+    @Unique
+    private static final int MAX_QUEUE_SIZE = 4096;
 
     @Unique
     private static long totalTasksSubmitted = 0;
@@ -44,15 +52,21 @@ public abstract class ServerLevelTickBlockMixin {
                     poolSize,
                     poolSize,
                     30L, TimeUnit.SECONDS,
-                    new LinkedBlockingQueue<>(200),
+                    new LinkedBlockingQueue<>(MAX_QUEUE_SIZE),
                     r -> {
                         Thread t = new Thread(r, "AkiAsync-Pool");
                         t.setDaemon(true);
                         return t;
                     },
-                    new ThreadPoolExecutor.DiscardPolicy()
+                    (r, executor) -> {
+                        totalTasksRejected++;
+                        if (totalTasksRejected % 100 == 0) {
+                            LOGGER.warn("线程池队列已满，已拒绝 {} 个任务，回退到主线程执行", totalTasksRejected);
+                        }
+                    }
             );
-            System.out.println("[AkiAsync] 线程池已初始化，大小: " + poolSize + ", 队列: 200, 最大待处理任务: " + MAX_PENDING_TASKS);
+            LOGGER.info("[AkiAsync] 线程池已初始化: 线程数={}, 队列大小={}, 最大待处理任务={}",
+                    poolSize, MAX_QUEUE_SIZE, MAX_PENDING_TASKS);
         }
         return executorService;
     }
@@ -78,7 +92,7 @@ public abstract class ServerLevelTickBlockMixin {
         if (currentPending >= MAX_PENDING_TASKS) {
             totalTasksRejected++;
             if (totalTasksRejected % 100 == 0) {
-                System.out.println("[AkiAsync] 流量控制：已拒绝 " + totalTasksRejected + " 个任务，当前待处理: " + currentPending);
+                LOGGER.warn("流量控制：已拒绝 {} 个任务，当前待处理: {}", totalTasksRejected, currentPending);
             }
             return;
         }
@@ -104,7 +118,7 @@ public abstract class ServerLevelTickBlockMixin {
             ci.cancel();
         } catch (Exception e) {
             pendingTasks.decrementAndGet();
-            System.out.println("[AkiAsync] 任务提交失败，回退到同步执行: " + e.getMessage());
+            LOGGER.warn("任务提交失败，回退到同步执行: {}", e.getMessage());
         }
     }
 
@@ -158,6 +172,7 @@ public abstract class ServerLevelTickBlockMixin {
                         blockName.contains("spore_blossom") ||
                         blockName.contains("moss") ||
                         blockName.contains("chorus") ||
+                        blockName.contains("eyeblossom") ||
                         blockName.contains("command") ||
                         blockName.contains("structure") ||
                         blockName.contains("spawner") ||
@@ -212,7 +227,7 @@ public abstract class ServerLevelTickBlockMixin {
                     if (current.is(block)) {
                         current.tick(level, pos, level.random);
                         if (Math.random() < 0.01) {
-                            System.out.println("[AkiAsync] 异步失败，已回退到同步执行: " + block);
+                            LOGGER.warn("异步失败，已回退到同步执行: {} at {}", block, pos);
                         }
                     }
                 } catch (Throwable ignored) {}
