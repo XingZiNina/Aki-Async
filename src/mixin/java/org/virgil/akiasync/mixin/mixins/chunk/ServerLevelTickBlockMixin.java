@@ -12,11 +12,15 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Collections;
 
 @Mixin(value = ServerLevel.class)
 public abstract class ServerLevelTickBlockMixin {
@@ -40,6 +44,136 @@ public abstract class ServerLevelTickBlockMixin {
     private static long totalTasksSubmitted = 0;
     @Unique
     private static long totalTasksRejected = 0;
+
+    // 内联黑名单 - 静态黑名单
+    @Unique
+    private static final Set<String> STATIC_BLACKLIST;
+
+    // 内联黑名单 - 动态黑名单（线程安全）
+    @Unique
+    private static final Set<String> DYNAMIC_BLACKLIST = Collections.synchronizedSet(new HashSet<>());
+
+    static {
+        Set<String> blacklist = new HashSet<>();
+
+        // === 液体和流动方块 ===
+        addToBlacklist(blacklist, "water");
+        addToBlacklist(blacklist, "lava");
+        addToBlacklist(blacklist, "bubble");
+        addToBlacklist(blacklist, "flowing");
+
+        // === 重力方块 ===
+        addToBlacklist(blacklist, "sand");
+        addToBlacklist(blacklist, "gravel");
+        addToBlacklist(blacklist, "concrete_powder");
+        addToBlacklist(blacklist, "anvil");
+        addToBlacklist(blacklist, "scaffolding");
+        addToBlacklist(blacklist, "dragon_egg");
+
+        // === 红石相关 ===
+        addToBlacklist(blacklist, "redstone");
+        addToBlacklist(blacklist, "comparator");
+        addToBlacklist(blacklist, "repeater");
+        addToBlacklist(blacklist, "observer");
+        addToBlacklist(blacklist, "piston");
+        addToBlacklist(blacklist, "dispenser");
+        addToBlacklist(blacklist, "dropper");
+        addToBlacklist(blacklist, "hopper");
+        addToBlacklist(blacklist, "lever");
+        addToBlacklist(blacklist, "button");
+        addToBlacklist(blacklist, "pressure_plate");
+        addToBlacklist(blacklist, "tripwire");
+        addToBlacklist(blacklist, "target");
+        addToBlacklist(blacklist, "daylight_detector");
+        addToBlacklist(blacklist, "tnt");
+        addToBlacklist(blacklist, "note_block");
+
+        // === 火和光源 ===
+        addToBlacklist(blacklist, "fire");
+        addToBlacklist(blacklist, "torch");
+        addToBlacklist(blacklist, "lantern");
+        addToBlacklist(blacklist, "campfire");
+
+        // === 植物和自然方块 ===
+        addToBlacklist(blacklist, "leaves");
+        addToBlacklist(blacklist, "sapling");
+        addToBlacklist(blacklist, "grass");
+        addToBlacklist(blacklist, "big_dripleaf");
+        addToBlacklist(blacklist, "dripleaf");
+        addToBlacklist(blacklist, "fern");
+        addToBlacklist(blacklist, "flower");
+        addToBlacklist(blacklist, "mushroom");
+        addToBlacklist(blacklist, "vine");
+        addToBlacklist(blacklist, "lily");
+        addToBlacklist(blacklist, "cactus");
+        addToBlacklist(blacklist, "sugar_cane");
+        addToBlacklist(blacklist, "bamboo");
+        addToBlacklist(blacklist, "kelp");
+        addToBlacklist(blacklist, "seagrass");
+        addToBlacklist(blacklist, "sea_pickle");
+        addToBlacklist(blacklist, "coral");
+        addToBlacklist(blacklist, "azalea");
+        addToBlacklist(blacklist, "mangrove");
+        addToBlacklist(blacklist, "cherry");
+        addToBlacklist(blacklist, "spore_blossom");
+        addToBlacklist(blacklist, "moss");
+        addToBlacklist(blacklist, "chorus");
+        addToBlacklist(blacklist, "eyeblossom");
+
+        // === 功能方块 ===
+        addToBlacklist(blacklist, "command");
+        addToBlacklist(blacklist, "structure");
+        addToBlacklist(blacklist, "spawner");
+        addToBlacklist(blacklist, "bed");
+        addToBlacklist(blacklist, "door");
+        addToBlacklist(blacklist, "trapdoor");
+        addToBlacklist(blacklist, "fence_gate");
+        addToBlacklist(blacklist, "chest");
+        addToBlacklist(blacklist, "barrel");
+        addToBlacklist(blacklist, "furnace");
+        addToBlacklist(blacklist, "enchanting_table");
+        addToBlacklist(blacklist, "beacon");
+        addToBlacklist(blacklist, "conduit");
+        addToBlacklist(blacklist, "bell");
+
+        // === 跨维度相关 ===
+        addToBlacklist(blacklist, "portal");
+        addToBlacklist(blacklist, "end_gateway");
+
+        // === 特殊机制方块 ===
+        addToBlacklist(blacklist, "dragon_egg");
+        addToBlacklist(blacklist, "sponge");
+        addToBlacklist(blacklist, "cake");
+        addToBlacklist(blacklist, "sculk");
+        addToBlacklist(blacklist, "magma");
+        addToBlacklist(blacklist, "soul");
+        addToBlacklist(blacklist, "crying_obsidian");
+        addToBlacklist(blacklist, "copper");
+        addToBlacklist(blacklist, "farmland");
+        addToBlacklist(blacklist, "composter");
+        addToBlacklist(blacklist, "bee_nest");
+        addToBlacklist(blacklist, "candle");
+        addToBlacklist(blacklist, "rail");
+        addToBlacklist(blacklist, "pointed_dripstone");
+        addToBlacklist(blacklist, "lightning_rod");
+        addToBlacklist(blacklist, "powder_snow");
+        addToBlacklist(blacklist, "amethyst_cluster");
+        addToBlacklist(blacklist, "budding_amethyst");
+        addToBlacklist(blacklist, "calibrated_sculk_sensor");
+        addToBlacklist(blacklist, "reinforced_deepslate");
+        addToBlacklist(blacklist, "decorated_pot");
+        addToBlacklist(blacklist, "suspicious_sand");
+        addToBlacklist(blacklist, "suspicious_gravel");
+        addToBlacklist(blacklist, "trial_spawner");
+        addToBlacklist(blacklist, "vault");
+
+        STATIC_BLACKLIST = Collections.unmodifiableSet(blacklist);
+    }
+
+    @Unique
+    private static void addToBlacklist(Set<String> blacklist, String blockName) {
+        blacklist.add(blockName);
+    }
 
     @Unique
     private static volatile ExecutorService executorService;
@@ -84,7 +218,9 @@ public abstract class ServerLevelTickBlockMixin {
         }
 
         String blockName = block.getDescriptionId().toLowerCase();
-        if (isUnsafeBlock(blockName)) {
+
+        // 使用内联的黑名单检查
+        if (isBlockBlacklisted(blockName)) {
             return;
         }
 
@@ -123,104 +259,34 @@ public abstract class ServerLevelTickBlockMixin {
     }
 
     @Unique
-    private boolean isUnsafeBlock(String blockName) {
-        return
-                blockName.contains("water") ||
-                        blockName.contains("lava") ||
-                        blockName.contains("bubble") ||
-                        blockName.contains("flowing") ||
-                        blockName.contains("redstone") ||
-                        blockName.contains("comparator") ||
-                        blockName.contains("repeater") ||
-                        blockName.contains("observer") ||
-                        blockName.contains("piston") ||
-                        blockName.contains("dispenser") ||
-                        blockName.contains("dropper") ||
-                        blockName.contains("hopper") ||
-                        blockName.contains("lever") ||
-                        blockName.contains("button") ||
-                        blockName.contains("pressure_plate") ||
-                        blockName.contains("tripwire") ||
-                        blockName.contains("target") ||
-                        blockName.contains("daylight_detector") ||
-                        blockName.contains("tnt") ||
-                        blockName.contains("note_block") ||
-                        blockName.contains("fire") ||
-                        blockName.contains("torch") ||
-                        blockName.contains("lantern") ||
-                        blockName.contains("campfire") ||
-                        blockName.contains("leaves") ||
-                        blockName.contains("sapling") ||
-                        blockName.contains("grass") ||
-                        blockName.contains("big_dripleaf") ||
-                        blockName.contains("dripleaf") ||
-                        blockName.contains("fern") ||
-                        blockName.contains("flower") ||
-                        blockName.contains("mushroom") ||
-                        blockName.contains("vine") ||
-                        blockName.contains("lily") ||
-                        blockName.contains("cactus") ||
-                        blockName.contains("sugar_cane") ||
-                        blockName.contains("bamboo") ||
-                        blockName.contains("kelp") ||
-                        blockName.contains("seagrass") ||
-                        blockName.contains("sea_pickle") ||
-                        blockName.contains("coral") ||
-                        blockName.contains("azalea") ||
-                        blockName.contains("mangrove") ||
-                        blockName.contains("cherry") ||
-                        blockName.contains("spore_blossom") ||
-                        blockName.contains("moss") ||
-                        blockName.contains("chorus") ||
-                        blockName.contains("eyeblossom") ||
-                        blockName.contains("command") ||
-                        blockName.contains("structure") ||
-                        blockName.contains("spawner") ||
-                        blockName.contains("bed") ||
-                        blockName.contains("door") ||
-                        blockName.contains("trapdoor") ||
-                        blockName.contains("fence_gate") ||
-                        blockName.contains("chest") ||
-                        blockName.contains("barrel") ||
-                        blockName.contains("furnace") ||
-                        blockName.contains("enchanting_table") ||
-                        blockName.contains("anvil") ||
-                        blockName.contains("beacon") ||
-                        blockName.contains("conduit") ||
-                        blockName.contains("bell") ||
-                        blockName.contains("portal") ||
-                        blockName.contains("end_gateway") ||
-                        blockName.contains("dragon_egg") ||
-                        blockName.contains("sponge") ||
-                        blockName.contains("cake") ||
-                        blockName.contains("scaffolding") ||
-                        blockName.contains("sculk") ||
-                        blockName.contains("magma") ||
-                        blockName.contains("soul") ||
-                        blockName.contains("crying_obsidian") ||
-                        blockName.contains("copper") ||
-                        blockName.contains("farmland") ||
-                        blockName.contains("composter") ||
-                        blockName.contains("bee_nest") ||
-                        blockName.contains("candle") ||
-                        blockName.contains("rail") ||
-                        blockName.contains("pointed_dripstone") ||
-                        blockName.contains("lightning_rod") ||
-                        blockName.contains("powder_snow") ||
-                        blockName.contains("amethyst_cluster") ||
-                        blockName.contains("budding_amethyst") ||
-                        blockName.contains("calibrated_sculk_sensor") ||
-                        blockName.contains("reinforced_deepslate") ||
-                        blockName.contains("decorated_pot") ||
-                        blockName.contains("suspicious_sand") ||
-                        blockName.contains("suspicious_gravel") ||
-                        blockName.contains("trial_spawner") ||
-                        blockName.contains("vault");
+    private boolean isBlockBlacklisted(String blockName) {
+        // 检查静态黑名单
+        for (String blacklisted : STATIC_BLACKLIST) {
+            if (blockName.contains(blacklisted)) {
+                return true;
+            }
+        }
+        // 检查动态黑名单
+        synchronized (DYNAMIC_BLACKLIST) {
+            for (String blacklisted : DYNAMIC_BLACKLIST) {
+                if (blockName.contains(blacklisted)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     @Unique
     private void handleAsyncError(ServerLevel level, BlockPos pos, Block block, Throwable t) {
         if (isAsyncError(t)) {
+            // 将导致错误的方块添加到动态黑名单
+            String blockName = block.getDescriptionId().toLowerCase();
+            synchronized (DYNAMIC_BLACKLIST) {
+                DYNAMIC_BLACKLIST.add(blockName);
+            }
+            LOGGER.warn("检测到不安全的异步方块tick，已加入动态黑名单: {}", blockName);
+
             level.getServer().execute(() -> {
                 try {
                     BlockState current = level.getBlockState(pos);
