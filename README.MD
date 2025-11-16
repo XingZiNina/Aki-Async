@@ -12,9 +12,7 @@
 [![Java](https://img.shields.io/badge/Java-21+-orange.svg)](https://www.oracle.com/java/)
 [![Version](https://img.shields.io/badge/version-3.2.2--Community-orange.svg)](https://github.com/XingZiNina/Aki-Async)
 
-**🎉 Community Edition（社区版）**
-
-[快速开始](#-快速开始) • [命令列表](#-命令列表) • [配置说明](#️-配置说明) • [常见问题](#-常见问题)
+![Logo](shuye.png)
 
 </div>
 
