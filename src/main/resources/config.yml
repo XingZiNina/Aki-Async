@@ -73,7 +73,7 @@ async-ai:
   # 技术特性 / Features: POI快照 + 职业原子占坑
   villager-optimization:
     # 启用开关 / Enable toggle
-    enabled: false
+    enabled: true
     # 使用POI快照 / Use POI snapshot
     # 说明：村民需要POI系统（床、工作站）
     # Description: Villagers need POI system (beds, job sites)
@@ -83,7 +83,7 @@ async-ai:
   # 支持实体 / Supported: Piglin, PiglinBrute
   # 技术特性 / Features: UUID虚拟引用 + 物品比价 + 恐惧向量
   piglin-optimization:
-    enabled: false
+    enabled: true
     use-poi-snapshot: false
     # 注视距离（格）/ Look distance (blocks)
     look-distance: 16
@@ -95,7 +95,7 @@ async-ai:
   # 技术特性 / Features: 安全反射写字段 + Raid检测
   # 注意 / Note: Evoker单独优化（见下方）
   pillager-family-optimization:
-    enabled: false
+    enabled: true
     use-poi-snapshot: false
   
   # ---------- 高级AI实体优化 / High-AI Entity Optimization ----------
@@ -105,13 +105,13 @@ async-ai:
   # 支持实体 / Supported: Evoker
   # 计算内容 / Computations: 法术CD + 召唤Vex + 空地块检测
   evoker-optimization:
-    enabled: false
+    enabled: true
   
   # Blaze优化 / Blaze Optimization  
   # 支持实体 / Supported: Blaze
   # 计算内容 / Computations: 火焰弹CD + 火柱空位检测
   blaze-optimization:
-    enabled: false
+    enabled: true
   
   # Guardian优化 / Guardian Optimization
   # 支持实体 / Supported: Guardian, ElderGuardian
@@ -119,14 +119,14 @@ async-ai:
   # 说明：远古守卫者自动包含（Java继承）
   # Description: Elder guardian auto-included (Java inheritance)
   guardian-optimization:
-    enabled: false
+    enabled: true
   
   # Witch优化 / Witch Optimization (v2.1: safe reflection)
   # 支持实体 / Supported: Witch
   # 计算内容 / Computations: 最近玩家目标筛选
   # 技术特性 / Features: printStackTrace + no rethrow（安全异常处理）
   witch-optimization:
-    enabled: false
+    enabled: true
   
   # ========== 统一AI优化 / Universal AI Optimization ==========
   # 支持实体 / Supported: 所有剩余生物（见下方列表）
@@ -323,7 +323,7 @@ villager-breed-optimization:
 #   - minecraft:wither_skull (凋灵头颅)
 tnt-explosion-optimization:
   # 启用开关 / Enable toggle
-  enabled: true
+  enabled: false #目前该功能有未知Bug 生电玩家请勿开启!!!
   # 启用的爆炸实体白名单 / Enabled explosion entities
   # 说明：只对这些实体的爆炸进行异步计算优化，其他爆炸走原版
   # Description: Only async optimize explosions from these entities
@@ -417,9 +417,9 @@ lighting-optimizations:
 #   TPS: 20 (locked)
 chunk-tick-async:
   # 启用开关 / Enable toggle
-  enabled: false
+  enabled: false #如果你是在Minebbs上下载的版本 可以打开此配置
   # 线程数 / Thread count
-  # 推荐值 / Recommended: 4
+  # 推荐值 / Recommended: 2-4
   threads: 4
   # 超时时间（微秒）/ Timeout (microseconds)
   # 说明：超时立即回退主线程同步，保证最坏TPS
@@ -438,7 +438,7 @@ chunk-tick-async:
 #   海豚寻宝: 20-100ms → 异步查找 (AI不阻塞)
 structure-location-async:
   # 启用开关 / Enable toggle
-  enabled: true
+  enabled: true #该异步暂未对大型数据包进行优化 仅支持查找原版结构/群系
   
   # 线程池大小 / Thread pool size
   # 推荐值 / Recommended: 2-4 (结构查找CPU密集)
