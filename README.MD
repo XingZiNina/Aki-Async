@@ -12,7 +12,7 @@
 [![Java](https://img.shields.io/badge/Java-21+-orange.svg)](https://www.oracle.com/java/)
 [![Version](https://img.shields.io/badge/version-3.2.2--Community-orange.svg)](https://github.com/XingZiNina/Aki-Async)
 
-![Logo](shuye.png)
+![Logo](aki-xixi.png)
 
 </div>
 
