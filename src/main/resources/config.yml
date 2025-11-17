@@ -39,7 +39,7 @@ mob-spawning:
 # Description: Limit entities per chunk
 density:
   # 单区块最大实体数 / Max entities per chunk
-  max-per-chunk: 80
+  max-per-chunk: 100
 
 # AI降频 / Brain Throttle
 # 说明：静止实体降低AI更新频率
@@ -323,7 +323,7 @@ villager-breed-optimization:
 #   - minecraft:wither_skull (凋灵头颅)
 tnt-explosion-optimization:
   # 启用开关 / Enable toggle
-  enabled: false #目前该功能有未知Bug 生电玩家请勿开启!!!
+  enabled: true
   # 启用的爆炸实体白名单 / Enabled explosion entities
   # 说明：只对这些实体的爆炸进行异步计算优化，其他爆炸走原版
   # Description: Only async optimize explosions from these entities
@@ -415,9 +415,9 @@ lighting-optimizations:
 #   TPS: 20 (locked)
 chunk-tick-async:
   # 启用开关 / Enable toggle
-  enabled: false #如果你是在Minebbs上下载的版本 可以打开此配置
+  enabled: true
   # 线程数 / Thread count
-  # 推荐值 / Recommended: 2-4
+  # 推荐值 / Recommended: 4
   threads: 4
   # 超时时间（微秒）/ Timeout (microseconds)
   # 说明：超时立即回退主线程同步，保证最坏TPS
@@ -436,7 +436,7 @@ chunk-tick-async:
 #   海豚寻宝: 20-100ms → 异步查找 (AI不阻塞)
 structure-location-async:
   # 启用开关 / Enable toggle
-  enabled: true #该异步暂未对大型数据包进行优化 仅支持查找原版结构/群系
+  enabled: true
   
   # 线程池大小 / Thread pool size
   # 推荐值 / Recommended: 2-4 (结构查找CPU密集)
@@ -525,7 +525,7 @@ datapack-optimization:
   
   # Zip处理线程数 / Zip processing threads
   # 推荐值 / Recommended: 2-4 (I/O密集型)
-  zip-process-threads: 2
+  zip-process-threads: 4
   
   # 批处理大小 / Batch size
   # 说明：每批处理的文件数量，影响内存使用和性能
@@ -588,7 +588,7 @@ performance:
   # 性能指标收集 / Metrics collection
   # 说明：显示异步任务执行时间和队列大小
   # Description: Show async task execution times and queue sizes
-  enable-metrics: true
+  enable-metrics: false
 
 # 提示 / Tip: 更多线程≠更好性能！从推荐值开始调整。
 # More threads ≠ better performance! Start with recommended values.
