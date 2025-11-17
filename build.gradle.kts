@@ -14,11 +14,7 @@ plugins {
 }
 
 group = "org.virgil"
-<<<<<<< HEAD
-version = "3.2.2"
-=======
-version = "3.2.3-SNAPSHOT"
->>>>>>> abf31cf1511c47d1e485a372cbe53d7d0aeffc2c
+version = "3.2.3-1-SNAPSHOT"
 
 // please check https://docs.papermc.io/paper/dev/plugin-yml/ and https://docs.papermc.io/paper/dev/getting-started/paper-plugins/
 val pluginJson = leavesPluginJson {
@@ -37,7 +33,7 @@ val pluginJson = leavesPluginJson {
         accessWidener = "aki-async.accesswidener"
         mixins.add("aki-async.mixins.json")
     }
-    
+
     // TODO: add your plugin dependencies
     // please check https://docs.papermc.io/paper/dev/getting-started/paper-plugins/#dependency-declaration
     // e.g.,
@@ -100,18 +96,11 @@ dependencies {
         paperweight.devBundle(libs.leavesDevBundle)
     }
 
-    implementation("org.slf4j:slf4j-api:1.7.36")
-    implementation("org.slf4j:slf4j-simple:1.7.36")
-    apply `api and server source`@{
-        compileOnly(libs.leavesApi)
-        paperweight.devBundle(libs.leavesDevBundle)
-    }
-
     apply `mixin dependencies`@{
         // Main source set CAN access mixin source set (for ConfigBridge)
         // This is OK because ConfigBridge is in mixin but outside mixin.* package
         compileOnly(mixinSourceSet.output)
-        
+
         mixinSourceSet.apply {
             val compileOnly = compileOnlyConfigurationName
             val annotationPreprocessor = annotationProcessorConfigurationName
@@ -122,8 +111,6 @@ dependencies {
             compileOnly(libs.mixinCondition)
             compileOnly(libs.fastutil)
             accessWiden(compileOnly(files(getMappedServerJar()))!!)
-
-            compileOnly("org.slf4j:slf4j-api:1.7.36")
         }
     }
 }
@@ -156,7 +143,7 @@ tasks {
         dependsOn("paperweightUserdevSetup")
         dependsOn(applyAccessWideners)
     }
-    
+
     named<JavaCompile>("compileJava") {
         // Main must compile AFTER mixin (to access ConfigBridge which is in mixin source set)
         dependsOn("compileMixinJava")
