@@ -22,6 +22,31 @@ public class AkiAsyncBridge implements org.virgil.akiasync.mixin.bridge.Bridge {
     }
     
     @Override
+    public boolean isNitoriOptimizationsEnabled() { 
+        return config != null ? config.isNitoriOptimizationsEnabled() : true; 
+    }
+    
+    @Override
+    public boolean isVirtualThreadEnabled() { 
+        return config != null ? config.isVirtualThreadEnabled() : true; 
+    }
+    
+    @Override
+    public boolean isWorkStealingEnabled() { 
+        return config != null ? config.isWorkStealingEnabled() : true; 
+    }
+    
+    @Override
+    public boolean isBlockPosCacheEnabled() { 
+        return config != null ? config.isBlockPosCacheEnabled() : true; 
+    }
+    
+    @Override
+    public boolean isOptimizedCollectionsEnabled() { 
+        return config != null ? config.isOptimizedCollectionsEnabled() : true; 
+    }
+    
+    @Override
     public boolean isEntityTickParallel() { return config.isEntityTickParallel(); }
     
     @Override
@@ -251,6 +276,7 @@ public class AkiAsyncBridge implements org.virgil.akiasync.mixin.bridge.Bridge {
     
     public void updateConfiguration(ConfigManager newConfig) {
         this.config = newConfig;
+        org.virgil.akiasync.util.DebugLogger.updateDebugState(newConfig.isDebugLoggingEnabled());
     }
     
     @Override
@@ -274,7 +300,6 @@ public class AkiAsyncBridge implements org.virgil.akiasync.mixin.bridge.Bridge {
     @Override
     public long getChunkTickTimeoutMicros() {return config.getChunkTickTimeoutMicros();}
     
-    // Structure Location Async Configuration
     @Override
     public boolean isStructureLocationAsyncEnabled() {return config.isStructureLocationAsyncEnabled();}
     
@@ -321,6 +346,45 @@ public class AkiAsyncBridge implements org.virgil.akiasync.mixin.bridge.Bridge {
     public boolean isStructureLocationDebugEnabled() {return config.isStructureLocationDebugEnabled();}
     
     @Override
+    public boolean isStructureAlgorithmOptimizationEnabled() {return config.isStructureAlgorithmOptimizationEnabled();}
+    
+    @Override
+    public String getStructureSearchPattern() {return config.getStructureSearchPattern();}
+    
+    @Override
+    public boolean isStructureCachingEnabled() {return config.isStructureCachingEnabled();}
+    
+    @Override
+    public boolean isStructurePrecomputationEnabled() {return config.isStructurePrecomputationEnabled();}
+    
+    @Override
+    public boolean isBiomeAwareSearchEnabled() {return config.isBiomeAwareSearchEnabled();}
+    
+    @Override
+    public int getStructureCacheMaxSize() {return config.getStructureCacheMaxSize();}
+    
+    @Override
+    public long getStructureCacheExpirationMinutes() {return config.getStructureCacheExpirationMinutes();}
+    
+    @Override
+    public boolean isDataPackOptimizationEnabled() {return config.isDataPackOptimizationEnabled();}
+    
+    @Override
+    public int getDataPackFileLoadThreads() {return config.getDataPackFileLoadThreads();}
+    
+    @Override
+    public int getDataPackZipProcessThreads() {return config.getDataPackZipProcessThreads();}
+    
+    @Override
+    public int getDataPackBatchSize() {return config.getDataPackBatchSize();}
+    
+    @Override
+    public long getDataPackCacheExpirationMinutes() {return config.getDataPackCacheExpirationMinutes();}
+    
+    @Override
+    public boolean isDataPackDebugEnabled() {return config.isDataPackDebugEnabled();}
+    
+    @Override
     public void handleLocateCommandAsyncStart(net.minecraft.commands.CommandSourceStack sourceStack, net.minecraft.commands.arguments.ResourceOrTagKeyArgument.Result<net.minecraft.world.level.levelgen.structure.Structure> structureResult, net.minecraft.core.HolderSet<net.minecraft.world.level.levelgen.structure.Structure> holderSet) {
         java.util.concurrent.CompletableFuture.supplyAsync(() -> {
             try {
@@ -331,12 +395,24 @@ public class AkiAsyncBridge implements org.virgil.akiasync.mixin.bridge.Bridge {
                     System.out.println("[AkiAsync] Starting async locate command from " + startPos);
                 }
                 
-                com.mojang.datafixers.util.Pair<net.minecraft.core.BlockPos, net.minecraft.core.Holder<net.minecraft.world.level.levelgen.structure.Structure>> result = 
-                    level.getChunkSource().getGenerator().findNearestMapStructure(
+                com.mojang.datafixers.util.Pair<net.minecraft.core.BlockPos, net.minecraft.core.Holder<net.minecraft.world.level.levelgen.structure.Structure>> result;
+                
+                if (config.isStructureAlgorithmOptimizationEnabled()) {
+                    if (config.isStructureLocationDebugEnabled()) {
+                        System.out.println("[AkiAsync] Using optimized structure search algorithm");
+                    }
+                    result = org.virgil.akiasync.async.structure.OptimizedStructureLocator.findNearestStructureOptimized(
+                        level, holderSet, startPos,
+                        config.getLocateCommandSearchRadius(),
+                        config.isLocateCommandSkipKnownStructures()
+                    );
+                } else {
+                    result = level.getChunkSource().getGenerator().findNearestMapStructure(
                         level, holderSet, startPos, 
                         config.getLocateCommandSearchRadius(), 
                         config.isLocateCommandSkipKnownStructures()
                     );
+                }
                 
                 return result != null ? result.getFirst() : null;
             } catch (Exception e) {
@@ -610,5 +686,25 @@ public class AkiAsyncBridge implements org.virgil.akiasync.mixin.bridge.Bridge {
         } catch (Exception e) {
             System.err.println("[AkiAsync] Failed to set return value: " + e.getMessage());
         }
+    }
+    
+    @Override
+    public void debugLog(String message) {
+        org.virgil.akiasync.util.DebugLogger.debug(message);
+    }
+    
+    @Override
+    public void debugLog(String format, Object... args) {
+        org.virgil.akiasync.util.DebugLogger.debug(format, args);
+    }
+    
+    @Override
+    public void errorLog(String message) {
+        org.virgil.akiasync.util.DebugLogger.error(message);
+    }
+    
+    @Override
+    public void errorLog(String format, Object... args) {
+        org.virgil.akiasync.util.DebugLogger.error(format, args);
     }
 }

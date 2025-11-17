@@ -15,6 +15,11 @@ public abstract class CollisionOptimizationMixin {
         if (!initialized) { akiasync$initCollisionOptimization(); }
         if (!enabled) return;
         Entity self = (Entity) (Object) this;
+        
+        if (self.isInLava() || self.isOnFire() || self.getRemainingFireTicks() > 0) {
+            return;
+        }
+        
         if (self.getDeltaMovement().lengthSqr() < minMovement) {
             ci.cancel();
         }
@@ -37,6 +42,8 @@ public abstract class CollisionOptimizationMixin {
             enabled = true;
         }
         initialized = true;
-        System.out.println("[AkiAsync] CollisionOptimizationMixin initialized: enabled=" + enabled);
+        if (bridge != null) {
+            bridge.debugLog("[AkiAsync] CollisionOptimizationMixin initialized: enabled=" + enabled);
+        }
     }
 }

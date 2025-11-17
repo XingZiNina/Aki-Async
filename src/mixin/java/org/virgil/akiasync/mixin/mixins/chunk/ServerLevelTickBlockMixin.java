@@ -217,7 +217,41 @@ public abstract class ServerLevelTickBlockMixin {
             return;
         }
 
+<<<<<<< HEAD
         String blockName = block.getDescriptionId().toLowerCase();
+=======
+        ASYNC_BLOCK_TICK_EXECUTOR.execute(() -> {
+            try {
+                blockState.tick(level, pos, level.random);
+            } catch (Throwable t) {
+                StackTraceElement[] stack = t.getStackTrace();
+                boolean isAsyncCatcherError = stack.length > 0 && 
+                    stack[0].getClassName().equals("org.spigotmc.AsyncCatcher");
+                
+                if (isAsyncCatcherError) {
+                    level.getServer().execute(() -> {
+                        try {
+                            BlockState state = level.getBlockState(pos);
+                            if (state.is(block)) state.tick(level, pos, level.random);
+                        } catch (Throwable ignored) {
+                        }
+                    });
+                } else {
+                    org.virgil.akiasync.mixin.bridge.Bridge errorBridge = org.virgil.akiasync.mixin.bridge.BridgeManager.getBridge();
+                    if (errorBridge != null) {
+                        errorBridge.errorLog("[AkiAsync-BlockTick] Error in async block tick: " + t.getMessage() + " for " + block + ": " + t.getClass().getSimpleName());
+                    }
+                    level.getServer().execute(() -> {
+                        try {
+                            BlockState state = level.getBlockState(pos);
+                            if (state.is(block)) state.tick(level, pos, level.random);
+                        } catch (Throwable ignored) {
+                        }
+                    });
+                }
+            }
+        });
+>>>>>>> abf31cf1511c47d1e485a372cbe53d7d0aeffc2c
 
         // 使用内联的黑名单检查
         if (isBlockBlacklisted(blockName)) {
@@ -277,6 +311,7 @@ public abstract class ServerLevelTickBlockMixin {
         return false;
     }
 
+<<<<<<< HEAD
     @Unique
     private void handleAsyncError(ServerLevel level, BlockPos pos, Block block, Throwable t) {
         if (isAsyncError(t)) {
@@ -311,5 +346,14 @@ public abstract class ServerLevelTickBlockMixin {
                         msg.contains("main thread") ||
                         msg.contains("thread")
         )) || className.contains("AsyncCatcher");
+=======
+        initialized = true;
+        if (bridge != null) {
+            bridge.debugLog("[AkiAsync] ServerLevelTickBlockMixin initialized: enabled=" + cached_enabled);
+            bridge.debugLog("[AkiAsync]   Hooked: ServerLevel#tickBlock()");
+            bridge.debugLog("[AkiAsync]   Strategy: Offload blockState.tick() to Bridge executor");
+            bridge.debugLog("[AkiAsync]   Risk: Thread safety depends on block implementation");
+        }
+>>>>>>> abf31cf1511c47d1e485a372cbe53d7d0aeffc2c
     }
 }
